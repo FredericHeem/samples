@@ -1,7 +1,6 @@
 package com.example.schema
 
-import net.corda.core.schemas.MappedSchema
-import net.corda.core.schemas.PersistentState
+import net.corda.core.schemas.*
 import java.io.Serializable
 import javax.persistence.*
 
@@ -10,13 +9,17 @@ import javax.persistence.*
  */
 object PositionSchema
 
+@Embeddable
 data class PositionKey  (
+
         @Column(name = "beneficial_owner_id")
         val beneficialOwnerId: String = "",
 
         @Column(name = "security_id")
         val securityId: String = ""
-) : Serializable
+) :  Serializable {
+    constructor() : this("", "")
+}
 
 /**
  * An PositionState schema.
@@ -27,17 +30,10 @@ object PositionSchemaV1 : MappedSchema(
         mappedTypes = listOf(PersistentPositionState::class.java)) {
 
     @Entity(name = "position")
-    @IdClass(PositionKey::class)
-    @Access(AccessType.FIELD)
     data class PersistentPositionState(
 
-            @Id
-            @Column(name = "beneficial_owner_id")
-            var beneficialOwnerId: String = "",
-
-            @Id
-            @Column(name = "security_id")
-            var securityId: String = "",
+            @EmbeddedId
+            var compositeKey: PositionKey,
 
             @Column(name = "pending_quantity")
             var pendingQuantity: Int = 0,
@@ -50,7 +46,7 @@ object PositionSchemaV1 : MappedSchema(
 
     ) : PersistentState() {
         // Default constructor required by hibernate.
-        constructor(): this("", "", 0,"","")
+        constructor()
+                : this(PositionKey(), 0,"","")
     }
 }
-
