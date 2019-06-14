@@ -9,17 +9,7 @@ import javax.persistence.*
  */
 object PositionSchema
 
-@Embeddable
-data class PositionKey  (
 
-        @Column(name = "beneficial_owner_id")
-        val beneficialOwnerId: String = "",
-
-        @Column(name = "security_id")
-        val securityId: String = ""
-) :  Serializable {
-    constructor() : this("", "")
-}
 
 /**
  * An PositionState schema.
@@ -32,8 +22,11 @@ object PositionSchemaV1 : MappedSchema(
     @Entity(name = "position")
     data class PersistentPositionState(
 
-            @EmbeddedId
-            var compositeKey: PositionKey,
+            @Column(name = "beneficial_owner_id")
+            val beneficialOwnerId: String = "",
+
+            @Column(name = "security_id")
+            val securityId: String = "",
 
             @Column(name = "pending_quantity")
             var pendingQuantity: Int = 0,
@@ -47,6 +40,6 @@ object PositionSchemaV1 : MappedSchema(
     ) : PersistentState() {
         // Default constructor required by hibernate.
         constructor()
-                : this(PositionKey(), 0,"","")
+                : this("","", 0,"","")
     }
 }
