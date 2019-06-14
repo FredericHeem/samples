@@ -57,7 +57,7 @@ class PositionFlowTests {
         val positionNew = a.services.vaultService.queryBy<PositionState>().states
 
         positionNew.map{ println(it.state.data.position)}
-        assertEquals(2, positionNew.size)
+        assertEquals(1, positionNew.size)
 
     }
 
