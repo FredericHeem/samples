@@ -22,6 +22,9 @@ object PositionSchemaV1 : MappedSchema(
     @Entity(name = "position")
     data class PersistentPositionState(
 
+            @Column(name = "linear_id")
+            val linearId: String = "",
+
             @Column(name = "beneficial_owner_id")
             val beneficialOwnerId: String = "",
 
@@ -40,6 +43,6 @@ object PositionSchemaV1 : MappedSchema(
     ) : PersistentState() {
         // Default constructor required by hibernate.
         constructor()
-                : this("","", 0,"","")
+                : this("","","", 0,"","")
     }
 }

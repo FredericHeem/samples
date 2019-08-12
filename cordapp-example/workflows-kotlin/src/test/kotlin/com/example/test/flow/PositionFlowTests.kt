@@ -1,14 +1,17 @@
 package com.example.test.flow
 
 import com.example.flow.PositionCreateFlow
+import com.example.flow.PositionUpdateFlow
 import com.example.state.IOUState
 import com.example.state.Position
 import com.example.state.PositionState
+import com.example.state.Transaction
 import net.corda.core.concurrent.CordaFuture
 import net.corda.core.contracts.TransactionVerificationException
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.MockNetworkParameters
@@ -18,19 +21,21 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 class PositionFlowTests {
     private lateinit var network: MockNetwork
     private lateinit var a: StartedMockNode
     private lateinit var b: StartedMockNode
+    val beneficialOwnerId = "bo123"
+    val securtyId = "GB123456789"
 
     @Before
     fun setup() {
         network = MockNetwork(MockNetworkParameters(cordappsForAllNodes = listOf(
                 TestCordapp.findCordapp("com.example.contract"),
                 TestCordapp.findCordapp("com.example.flow")
-        )))
+        ), networkParameters = testNetworkParameters().copy(minimumPlatformVersion = 4)))
+
         a = network.createPartyNode()
         b = network.createPartyNode()
         // For real nodes this happens automatically, but we have to manually register the flow for tests.
@@ -43,7 +48,7 @@ class PositionFlowTests {
         network.stopNodes()
     }
     fun createPosition(): CordaFuture<SignedTransaction> {
-        val position = Position("bo","APPL", 0)
+        val position = Position(beneficialOwnerId,securtyId, 0)
         val flow = PositionCreateFlow.Initiator(position, b.info.singleIdentity())
         val future = a.startFlow(flow)
         network.runNetwork()
@@ -60,6 +65,15 @@ class PositionFlowTests {
         assertEquals(1, positionNew.size)
 
     }
+    @Test
+    fun `update position`() {
+        createPosition().getOrThrow()
+        var transaction = Transaction(reference="ABC", beneficialOwnerId = beneficialOwnerId, securityId = securtyId)
+        val flow = PositionUpdateFlow.Initiator(transaction, b.info.singleIdentity())
+        val future = a.startFlow(flow)
+        network.runNetwork()
+        future.getOrThrow()
 
+    }
 
 }

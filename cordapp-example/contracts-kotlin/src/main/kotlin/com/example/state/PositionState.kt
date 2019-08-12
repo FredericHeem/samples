@@ -5,36 +5,39 @@ import com.example.contract.PositionContract
 import com.example.schema.PositionSchemaV1
 import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.LinearState
+import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
+import net.corda.core.flows.FlowException
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
+import net.corda.core.node.ServiceHub
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 import java.util.*
-
+import net.corda.core.node.services.queryBy
+import net.corda.core.node.services.vault.Builder.equal
 /**
  */
 @BelongsToContract(PositionContract::class)
 data class PositionState(
         val position: Position,
         val local: Party,
-        val global: Party
+        val global: Party,
+        override val linearId: UniqueIdentifier = UniqueIdentifier(null, UUID.nameUUIDFromBytes("${position.beneficialOwnerId}${position.securityId}".toByteArray()))
+
 ) : LinearState, QueryableState
 
 {
-    val id = "$position.beneficialOwnerId-$position.securityId"
-    override val linearId: UniqueIdentifier get() {
-        return UniqueIdentifier(null, UUID.nameUUIDFromBytes(id.toByteArray()))
-
-    }
     /** The public keys of the involved parties. */
     override val participants: List<AbstractParty> get() = listOf(local, global)
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when (schema) {
             is PositionSchemaV1 -> PositionSchemaV1.PersistentPositionState(
+                    linearId=this.linearId.toString(),
                     beneficialOwnerId=this.position.beneficialOwnerId,
                     securityId=this.position.securityId,
                     pendingQuantity = this.position.pendingQuantity,
@@ -51,7 +54,27 @@ data class PositionState(
 
 @CordaSerializable
 data class Position(
-        val beneficialOwnerId: String,
-        val securityId: String,
-        val pendingQuantity: Int
+        val beneficialOwnerId: String = "",
+        val securityId: String= "",
+        val pendingQuantity: Int = 0
         )
+
+
+fun retrievePositions(transaction: Transaction, serviceHub: ServiceHub): List<StateAndRef<PositionState>> {
+    var boIdIndex = PositionSchemaV1.PersistentPositionState::beneficialOwnerId.equal(transaction.beneficialOwnerId)
+    var securityIdIndex = PositionSchemaV1.PersistentPositionState::securityId.equal(transaction.securityId)
+    val queryCriteria = QueryCriteria.VaultCustomQueryCriteria(boIdIndex)
+            .and(QueryCriteria.VaultCustomQueryCriteria(securityIdIndex))
+
+    return serviceHub.vaultService.queryBy<PositionState>(queryCriteria).states
+}
+
+fun retrievePosition(transaction: Transaction, serviceHub: ServiceHub): StateAndRef<PositionState>? {
+    val states = retrievePositions(transaction, serviceHub)
+    if (states.isEmpty()) {
+        return null
+    } else if (states.size >= 2) {
+        throw FlowException("Multiple positions for transaction $transaction")
+    }
+    return states.first()
+}
