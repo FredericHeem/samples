@@ -69,7 +69,7 @@ object PositionUpdateFlow {
             val txBuilder = TransactionBuilder(notary)
                     .addInputState(positionInputRef)
                     .addOutputState(positionOutputState, PositionContract.ID)
-                    .addOutputState(settlementOutputState, PositionContract.ID)
+                    //.addOutputState(settlementOutputState, PositionContract.ID)
                     .addCommand(txCommand)
 
             // Stage 2.

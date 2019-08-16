@@ -4,7 +4,6 @@ import co.paralleluniverse.fibers.Suspendable
 import com.example.contract.PositionContract
 import com.example.flow.PositionCreateFlow.Acceptor
 import com.example.flow.PositionCreateFlow.Initiator
-import com.example.state.IOUState
 import com.example.state.Position
 import com.example.state.PositionState
 import net.corda.core.contracts.Command

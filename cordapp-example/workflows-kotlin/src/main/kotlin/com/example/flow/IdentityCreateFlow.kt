@@ -1,10 +1,14 @@
 package com.example.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.example.contract.IOUContract
-import com.example.flow.ExampleFlow.Acceptor
-import com.example.flow.ExampleFlow.Initiator
-import com.example.state.IOUState
+import com.example.contract.IdentityContract
+import com.example.contract.PositionContract
+import com.example.flow.PositionCreateFlow.Acceptor
+import com.example.flow.PositionCreateFlow.Initiator
+import com.example.state.Identity
+import com.example.state.IdentityState
+import com.example.state.Position
+import com.example.state.PositionState
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -25,10 +29,10 @@ import net.corda.core.utilities.ProgressTracker.Step
  *
  * All methods called within the [FlowLogic] sub-class need to be annotated with the @Suspendable annotation.
  */
-object ExampleFlow {
+object IdentityCreateFlow {
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(val iouValue: Int,
+    class Initiator(val identity: Identity,
                     val otherParty: Party) : FlowLogic<SignedTransaction>() {
         /**
          * The progress tracker checkpoints each stage of the flow and outputs the specified messages when each
@@ -68,10 +72,10 @@ object ExampleFlow {
             // Stage 1.
             progressTracker.currentStep = GENERATING_TRANSACTION
             // Generate an unsigned transaction.
-            val iouState = IOUState(iouValue, serviceHub.myInfo.legalIdentities.first(), otherParty)
-            val txCommand = Command(IOUContract.Commands.Create(), iouState.participants.map { it.owningKey })
+            val positionState = IdentityState(identity, serviceHub.myInfo.legalIdentities.first(), otherParty)
+            val txCommand = Command(IdentityContract.Commands.Create(), positionState.participants.map { it.owningKey })
             val txBuilder = TransactionBuilder(notary)
-                    .addOutputState(iouState, IOUContract.ID)
+                    .addOutputState(positionState, IdentityContract.ID)
                     .addCommand(txCommand)
 
             // Stage 2.
@@ -103,10 +107,10 @@ object ExampleFlow {
         override fun call(): SignedTransaction {
             val signTransactionFlow = object : SignTransactionFlow(otherPartySession) {
                 override fun checkTransaction(stx: SignedTransaction) = requireThat {
-                    val output = stx.tx.outputs.single().data
-                    "This must be an IOU transaction." using (output is IOUState)
-                    val iou = output as IOUState
-                    "I won't accept IOUs with a value over 100." using (iou.value <= 100)
+                    //val output = stx.tx.outputs.single().data
+                    //"This must be an IOU transaction." using (output is IOUState)
+                    //val iou = output as IOUState
+                    //"I won't accept IOUs with a value over 100." using (iou.value <= 100)
                 }
             }
             val txId = subFlow(signTransactionFlow).id
